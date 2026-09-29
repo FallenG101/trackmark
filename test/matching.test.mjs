@@ -41,7 +41,7 @@ test('matches reissues, compilations, and remasters without choosing among them'
   }
 });
 
-test('flags Taylor’s Version and original recording for review rather than auto-matching', () => {
+test('excludes Taylor’s Version and original recording from replacement comparisons', () => {
   const result = compareTracks(
     track('original'),
     track('tv', {
@@ -49,7 +49,7 @@ test('flags Taylor’s Version and original recording for review rather than aut
       isrc: 'USBBB2400002',
     }),
   );
-  assert.equal(result.outcome, 'review');
+  assert.equal(result.outcome, 'separate');
 });
 
 test('allows explicit and clean release variants to match when recording evidence agrees', () => {
@@ -94,7 +94,14 @@ test('keeps covers, remixes, acoustic versions, demos, and alternate takes cauti
       track('base'),
       track(label, { title: `Midnight Rain (${label})`, isrc: 'USBBB2400002' }),
     );
-    assert.notEqual(result.outcome, 'match', `${label} should not be an automatic match`);
+    assert.equal(result.outcome, 'separate', `${label} must not be suggested for merging`);
+    assert.equal(
+      compareTracks(
+        track('a', { title: `Midnight Rain (${label})` }),
+        track('b', { title: `Midnight Rain (${label})` }),
+      ).outcome,
+      'separate',
+    );
   }
 });
 
@@ -175,7 +182,7 @@ test('suffix remasters are compared while meaningful edit labels remain evidence
   );
   assert.equal(
     compareTracks(track('a'), track('b', { title: 'Midnight Rain - Radio Edit' })).outcome,
-    'review',
+    'separate',
   );
 });
 test('words in a base title do not automatically indicate a live performance', () => {
@@ -189,7 +196,7 @@ test('remixes with different labels cannot be merged through similar durations',
       track('a', { title: 'Midnight Rain (Artist A Remix)', isrc: undefined }),
       track('b', { title: 'Midnight Rain (Artist B Remix)', isrc: undefined }),
     ).outcome,
-    'review',
+    'separate',
   );
 });
 test('matching artist names without IDs remain uncertain', () => {

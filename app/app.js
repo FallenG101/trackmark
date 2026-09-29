@@ -1,8 +1,13 @@
-import { SpotifyAuth } from './lib/auth.js?v=20260929-3';
-import { SpotifyReader } from './lib/spotify.js?v=20260929-3';
+import { SpotifyAuth } from './lib/auth.js?v=20260929-4';
+import { SpotifyReader } from './lib/spotify.js?v=20260929-4';
 import { demoScan, demoCatalog, demoTrackId } from './lib/demo.js';
-import { reviewScan, differingPlacements, duplicateMatches, parseTrackId } from './core/review.mjs';
-import { compareTracks, versionLabels } from './core/matching.mjs';
+import {
+  reviewScan,
+  differingPlacements,
+  duplicateMatches,
+  parseTrackId,
+} from './core/review.mjs?v=20260929-4';
+import { compareTracks, versionLabels } from './core/matching.mjs?v=20260929-4';
 const callbackUrl = new URL(location.href);
 const $ = (selector) => document.querySelector(selector);
 const html = (value) =>
@@ -242,7 +247,7 @@ function renderReview() {
   }
   const scanned = scan.playlists.filter((playlist) => playlist.status === 'scanned'),
     omissions = scanned.reduce((count, playlist) => count + playlist.omissions.length, 0);
-  summary.innerHTML = `<div class="scan-summary"><div class="scan-summary-heading"><strong>${scan.demo ? 'Sample library · no Spotify scan' : `${scanned.length} playlists scanned`}</strong><span class="pill">Read only</span></div><p>${scan.demo ? 'Synthetic metadata for exploring the app.' : `Scan finished ${date(scan.completedAt)}. These are snapshots, not live Spotify state.`}</p><p>${omissions} unsupported or unavailable entries could not be matched · ${review.liveExcluded} live recordings excluded from consistency changes.</p><div class="coverage-items">${scan.playlists.map((playlist) => `<span class="coverage-item" title="${html(playlist.error ?? playlist.omissions.map((item) => `#${item.position}: ${item.reason}`).join('; '))}"><span class="coverage-mark ${playlist.status === 'scanned' ? '' : 'warn'}">${playlist.status === 'scanned' ? '✓' : '!'}</span>${link(playlist.spotifyUrl, playlist.name)} <small>${html(playlist.status)}${playlist.scannedAt ? ` · ${date(playlist.scannedAt)}` : ''}${playlist.omissions.length ? ` · ${playlist.omissions.length} unchecked entries` : ''}</small></span>`).join('')}</div><p>Consistency applies only to the entries read in these scanned playlists. ${playlists.filter((playlist) => !scan.playlists.some((item) => item.id === playlist.id)).length} listed playlists were not selected.</p>${scanLimitations()}</div>`;
+  summary.innerHTML = `<div class="scan-summary"><div class="scan-summary-heading"><strong>${scan.demo ? 'Sample library · no Spotify scan' : `${scanned.length} playlists scanned`}</strong><span class="pill">Read only</span></div><p>${scan.demo ? 'Synthetic metadata for exploring the app.' : `Scan finished ${date(scan.completedAt)}. These are snapshots, not live Spotify state.`}</p><p>${omissions} unsupported or unavailable entries could not be matched · ${review.liveExcluded} live recordings and ${review.distinctVersionsExcluded} other distinct versions excluded from grouping and replacement suggestions (acoustic, remixes, demos, edits, covers, alternate takes and re-recordings).</p><div class="coverage-items">${scan.playlists.map((playlist) => `<span class="coverage-item" title="${html(playlist.error ?? playlist.omissions.map((item) => `#${item.position}: ${item.reason}`).join('; '))}"><span class="coverage-mark ${playlist.status === 'scanned' ? '' : 'warn'}">${playlist.status === 'scanned' ? '✓' : '!'}</span>${link(playlist.spotifyUrl, playlist.name)} <small>${html(playlist.status)}${playlist.scannedAt ? ` · ${date(playlist.scannedAt)}` : ''}${playlist.omissions.length ? ` · ${playlist.omissions.length} unchecked entries` : ''}</small></span>`).join('')}</div><p>Consistency applies only to the entries read in these scanned playlists. ${playlists.filter((playlist) => !scan.playlists.some((item) => item.id === playlist.id)).length} listed playlists were not selected.</p>${scanLimitations()}</div>`;
   const filter = $('#song-filter').value,
     query = $('#song-search').value.trim().toLowerCase();
   const items = [

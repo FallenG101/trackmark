@@ -1,4 +1,10 @@
-import { compareTracks, comparableTitle, groupTracks, versionLabels } from './matching.mjs';
+import {
+  compareTracks,
+  comparableTitle,
+  groupTracks,
+  versionLabels,
+  consistencyExclusions,
+} from './matching.mjs?v=20260929-4';
 export function trackFromSpotify(track) {
   return {
     id: track.linked_from?.id ?? track.id,
@@ -49,7 +55,7 @@ export function reviewScan(scan) {
   for (const track of tracks)
     if (
       !used.has(track.id) &&
-      !versionLabels(track).includes('live') &&
+      !consistencyExclusions(track).length &&
       new Set(track.locations.map((location) => location.playlistId)).size > 1
     ) {
       groups.push({ id: track.id, tracks: [track], comparisons: [] });
@@ -86,6 +92,9 @@ export function reviewScan(scan) {
     uncertainSongs,
     tracks,
     liveExcluded: tracks.filter((track) => versionLabels(track).includes('live')).length,
+    distinctVersionsExcluded: tracks.filter(
+      (track) => !versionLabels(track).includes('live') && consistencyExclusions(track).length,
+    ).length,
   };
 }
 export function differingPlacements(group, chosenId) {

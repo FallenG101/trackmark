@@ -2,12 +2,14 @@
 const patterns = [
   ['live', /\b(?:live|in concert|concert recording)\b/i],
   ['remix', /\b(?:remix|re-mix|mix)\b/i],
-  ['acoustic', /\b(?:acoustic|unplugged)\b/i],
+  ['acoustic', /\b(?:acoustic|unplugged|stripped(?:[ -]down)?)\b/i],
   ['demo', /\bdemo\b/i],
   ['alternate_take', /\b(?:alternate|alternative|alt\.?)[ -]take\b/i],
   ['edit', /\b(?:edit|edited|radio version|single version)\b/i],
   ['cover', /\b(?:cover|tribute|karaoke)\b/i],
   ['instrumental', /\binstrumental\b/i],
+  ['a_cappella', /\b(?:a[ -]?cappella|acapella)\b/i],
+  ['speed_change', /\b(?:sped[ -]up|speed[ -]up|slowed(?:[ -]down)?|nightcore)\b/i],
   ['re_recording', /\b(?:re-recorded|rerecorded|re-recording)\b/i],
   ['taylor_version', /\btaylor[’']?s version\b/i],
   ['remaster', /\bremaster(?:ed)?\b/i],
@@ -23,6 +25,8 @@ const meaningful = new Set([
   'edit',
   'cover',
   'instrumental',
+  'a_cappella',
+  'speed_change',
   're_recording',
   'taylor_version',
 ]);
@@ -56,6 +60,9 @@ export function versionLabels(track) {
       ...patterns.filter(([, pattern]) => pattern.test(text)).map(([name]) => name),
     ]),
   ].sort();
+}
+export function consistencyExclusions(track) {
+  return versionLabels(track).filter((label) => meaningful.has(label));
 }
 export function comparableTitle(title = '') {
   const known = (text) => patterns.some(([, pattern]) => pattern.test(text));
@@ -129,6 +136,14 @@ export function compareTracks(a, b) {
     uncertainty.push('Live recordings are excluded from consistency changes.');
     return result('separate', 'not-applicable');
   }
+  const excluded = [...new Set([...consistencyExclusions(a), ...consistencyExclusions(b)])];
+  if (excluded.length) {
+    conflicts.push('distinct_version_excluded');
+    uncertainty.push(
+      `Distinct recording labels excluded from grouping and replacement suggestions: ${excluded.join(', ')}.`,
+    );
+    return result('separate', 'not-applicable');
+  }
   if (artist === 'different') return result('separate', 'not-applicable');
   for (const label of meaningful) {
     if (aLabels.includes(label) && bLabels.includes(label)) {
@@ -185,7 +200,7 @@ export function groupTracks(tracks) {
   const buckets = new Map();
   for (const track of ordered) {
     const key = comparableTitle(track.title);
-    if (!key || versionLabels(track).includes('live')) continue;
+    if (!key || consistencyExclusions(track).length) continue;
     if (!buckets.has(key)) buckets.set(key, []);
     buckets.get(key).push(track);
   }

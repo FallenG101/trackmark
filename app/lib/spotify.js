@@ -1,4 +1,4 @@
-import { trackFromSpotify } from '../core/review.mjs';
+import { trackFromSpotify } from '../core/review.mjs?v=20260929-4';
 const API = 'https://api.spotify.com/v1/';
 export class SpotifyError extends Error {
   constructor(message, status, retryAfter) {

@@ -21,7 +21,8 @@ test('review preserves every placement, same-ID consistency, live exclusions and
     1,
   );
   assert.equal(result.liveExcluded, 1);
-  assert.ok(result.uncertain.length > 0);
+  assert.equal(result.uncertain.length, 0);
+  assert.equal(result.distinctVersionsExcluded, 1);
   assert.ok(
     !result.tracks.some((track) =>
       track.locations.some((location) => location.playlistId === 'demo-shared'),
@@ -72,11 +73,15 @@ test('Spotify metadata adaptation handles missing fields without inventing expli
   assert.equal(track.durationMs, undefined);
 });
 
-test('uncertain comparisons are displayed once per song without merging their match groups', () => {
+test('distinct labeled versions do not appear as related recording suggestions', () => {
   const result = reviewScan(demoScan());
-  assert.equal(result.uncertain.length, 3);
-  assert.equal(result.uncertainSongs.length, 1);
-  assert.equal(result.uncertainSongs[0].tracks.length, 4);
+  assert.equal(result.uncertain.length, 0);
+  assert.equal(result.uncertainSongs.length, 0);
+  assert.ok(
+    !result.groups.some((group) =>
+      group.tracks.some((track) => track.title.includes('Re-recorded')),
+    ),
+  );
   assert.equal(result.groups.find((group) => group.tracks.length > 1).tracks.length, 3);
 });
 test('relinked source IDs are retained and different original IDs do not become an automatic match', () => {
