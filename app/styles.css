@@ -1,28 +1,28 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
 :root {
-  --bg: #f7f7f3;
+  --bg: #f7f7f8;
   --surface: #fff;
-  --inset: #f5f6f1;
-  --ink: #252b25;
-  --muted: #6d776c;
-  --line: #dfe4da;
+  --inset: #f1f1f3;
+  --ink: #27282d;
+  --muted: #70717a;
+  --line: #dedee3;
   --accent: #326946;
-  --soft: #e7f2e8;
+  --soft: #ebebef;
   --amber: #8c651d;
   --amber-bg: #fcf2de;
   --danger: #ab3e3e;
-  --shadow: 0 4px 14px #17201108;
+  --shadow: 0 4px 14px #17171c08;
   color-scheme: light;
 }
 :root[data-theme='dark'] {
-  --bg: #141915;
-  --surface: #1e2620;
-  --inset: #19201b;
-  --ink: #e8eee7;
-  --muted: #a6b1a2;
-  --line: #364239;
-  --accent: #a5d5ac;
-  --soft: #2c4132;
+  --bg: #16171a;
+  --surface: #212226;
+  --inset: #1b1c20;
+  --ink: #e8e8ed;
+  --muted: #a6a7b0;
+  --line: #383940;
+  --accent: #94c49e;
+  --soft: #2c2d33;
   --amber: #e9c47d;
   --amber-bg: #3a3222;
   --danger: #f0a5a5;
