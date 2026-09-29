@@ -177,6 +177,8 @@ function groupCard(group) {
     playlistCount = new Set(
       group.tracks.flatMap((track) => track.locations.map((location) => location.playlistId)),
     ).size;
+  if (group.tracks.length === 1)
+    return `<article class="song-card"><div class="song-header"><div class="song-avatar" aria-hidden="true">✓</div><div class="song-title-group"><div class="song-label">ALREADY CONSISTENT</div><h2>${html(first.title)}</h2><p>${artists(first)} · Same Spotify track in ${playlistCount} scanned playlists</p></div></div><details class="evidence-panel"><summary>View release and playlist entries</summary>${trackDetails(first)}<p class="muted">No differing version was found in these scanned playlists. No replacement choice is needed. This does not establish consistency in unscanned playlists.</p></details>${relatedPanel(group)}</article>`;
   const catalog = catalogs.get(group.id),
     all = [
       ...[...group.tracks].sort(
@@ -277,7 +279,8 @@ function renderReview() {
         (filter === 'inconsistent' && entry.kind === 'group' && tracks.length > 1))
     );
   });
-  $('#result-count').textContent = `${review.groups.length} song groups`;
+  $('#result-count').textContent =
+    `${review.groups.filter((group) => group.tracks.length > 1).length} songs with multiple versions · ${review.groups.filter((group) => group.tracks.length === 1).length} already consistent`;
   $('#review-detail').textContent =
     `· ${review.uncertainSongs.filter((item) => !dismissed.has(item.trackIds.join('|'))).length} ${review.uncertainSongs.filter((item) => !dismissed.has(item.trackIds.join('|'))).length === 1 ? 'song' : 'songs'} with related recordings needing review`;
   const count = Math.ceil(items.length / 10);
