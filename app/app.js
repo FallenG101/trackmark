@@ -1,5 +1,11 @@
-import { SpotifyAuth } from './lib/auth.js?v=20260929-4';
-import { SpotifyReader } from './lib/spotify.js?v=20260929-7';
+import {
+  Preferences,
+  resolvePreference,
+  validTarget,
+  plannedPlacements,
+} from './core/preferences.mjs?v=20260929-8';
+import { SpotifyAuth } from './lib/auth.js?v=20260929-8';
+import { SpotifyReader } from './lib/spotify.js?v=20260929-8';
 import { demoScan, demoCatalog, demoTrackId } from './lib/demo.js';
 import {
   reviewScan,
@@ -65,6 +71,48 @@ try {
 $('#client-id').value = config.clientId;
 const auth = new SpotifyAuth(config),
   spotify = new SpotifyReader(auth);
+const preferences = new Preferences({
+  getItem: (key) => localStorage.getItem(key),
+  setItem: (key, value) => localStorage.setItem(key, value),
+});
+const choiceSources = new Map();
+function preferenceScope() {
+  return scan?.demo
+    ? 'sample'
+    : spotify.accountId
+      ? `${config.clientId}:${spotify.accountId}`
+      : null;
+}
+function optionsFor(group) {
+  return [
+    ...[...group.tracks].sort((a, b) => a.album.localeCompare(b.album) || a.id.localeCompare(b.id)),
+    ...(catalogs.get(group.id)?.tracks ?? []),
+  ];
+}
+function applySavedPreferences() {
+  for (const group of review?.groups ?? []) {
+    if (group.tracks.length < 2 || choiceSources.has(group.id)) continue;
+    const resolution = resolvePreference(
+      group,
+      preferences.get(preferenceScope(), group),
+      optionsFor(group),
+    );
+    if (resolution.status === 'ready') {
+      choices.set(group.id, resolution.target.id);
+      choiceSources.set(group.id, 'saved');
+      pages.set(
+        group.id,
+        Math.floor(optionsFor(group).findIndex((track) => track.id === resolution.target.id) / 5),
+      );
+    }
+  }
+}
+function preferencePanel(group) {
+  const preference = preferences.get(preferenceScope(), group);
+  const resolution = resolvePreference(group, preference, optionsFor(group));
+  const target = optionsFor(group).find((track) => track.id === choices.get(group.id));
+  return `<div class="notice"><strong>Your song preference</strong><p>${preference ? `Saved release: ${html(preference.album)} · Spotify ID ${html(preference.trackId)}. ${resolution.status === 'ready' ? (choiceSources.get(group.id) === 'saved' ? 'Your saved choice is applied to this review.' : 'Your current review choice overrides the saved preference.') : html(resolution.message)}` : 'No saved preference. Choose a version, then remember it for this review and future reviews.'}</p><div class="button-row"><button class="button compact" data-remember="${html(group.id)}" ${!preferenceScope() || !validTarget(group, target) ? 'disabled' : ''}>Remember chosen version</button>${preference ? `<button class="button compact" data-forget="${html(group.id)}">Forget song preference</button>` : ''}<button class="button compact" data-clear-choice="${html(group.id)}">Clear review choice</button></div><p class="muted">Saves your exact Spotify track choice in this browser for this account. This never changes Spotify playlists.</p></div>`;
+}
 let epoch = 0;
 let playlists = [],
   scan = null,
@@ -144,7 +192,7 @@ function evidence(comparisons) {
 }
 function versionOption(track, group) {
   const chosen = choices.get(group.id) === track.id;
-  return `<label class="version-option ${chosen ? 'selected' : ''}"><input type="radio" name="version-${html(group.id)}" data-choice="${html(group.id)}" value="${html(track.id)}" ${chosen ? 'checked' : ''} ${track.playable === false ? 'disabled' : ''}><span><span class="version-title">${html(track.title)}</span><span class="version-subtitle">${link(track.albumUrl, track.album)}</span>${locations(track)}</span><span class="version-meta">${versionLabels(
+  return `<label class="version-option ${chosen ? 'selected' : ''}"><input type="radio" name="version-${html(group.id)}" data-choice="${html(group.id)}" value="${html(track.id)}" ${chosen ? 'checked' : ''} ${!validTarget(group, track) ? 'disabled' : ''}><span><span class="version-title">${html(track.title)}</span><span class="version-subtitle">${link(track.albumUrl, track.album)}</span>${locations(track)}</span><span class="version-meta">${versionLabels(
     track,
   )
     .map((label) => `<span class="meta-tag">${html(label.replaceAll('_', ' '))}</span>`)
@@ -169,10 +217,13 @@ function preview(group) {
     return '<div class="change-preview"><strong>No version chosen</strong><p>Choose an option to see exactly which scanned playlist entries differ.</p></div>';
   const tracks = [...group.tracks, ...(catalogs.get(group.id)?.tracks ?? [])],
     target = tracks.find((track) => track.id === chosen);
-  const changes = group.tracks
-    .filter((track) => track.id !== chosen)
-    .flatMap((track) => track.locations.map((location) => ({ ...location, from: track })));
-  return `<div class="change-preview"><strong>Chosen: ${html(target?.album ?? 'Unknown release')} · ${changes.length} ${changes.length === 1 ? 'entry differs' : 'entries differ'}</strong><p>This is a review plan. Spotify has not been changed.</p>${changes.length ? `<ul>${changes.map((change) => `<li><strong>${html(change.playlist)}</strong>, entry #${change.position} <span>· ${html(change.from.album)} → ${html(target?.album)}</span></li>`).join('')}</ul>` : '<p>Every placement in this group already uses this Spotify track ID.</p>'}</div>`;
+  let changes;
+  try {
+    changes = plannedPlacements(group, target);
+  } catch (error) {
+    return `<div class="change-preview"><strong>Review choice needs attention</strong><p>${html(error.message)}</p></div>`;
+  }
+  return `<div class="change-preview"><strong>Chosen: ${html(target?.album ?? 'Unknown release')} · ${changes.length} ${changes.length === 1 ? 'entry differs' : 'entries differ'}</strong><p>This is a review plan. Spotify has not been changed.</p>${changes.length ? `<ul>${changes.map((change) => `<li><strong>${html(change.playlist)}</strong>, entry #${change.position} <span>· ${html(group.tracks.find((track) => track.id === change.fromTrackId)?.album ?? 'Unknown release')} → ${html(target?.album)}</span></li>`).join('')}</ul>` : '<p>Every placement in this group already uses this Spotify track ID.</p>'}</div>`;
 }
 function groupCard(group) {
   const first = group.tracks[0],
@@ -192,7 +243,7 @@ function groupCard(group) {
     page = pages.get(group.id) ?? 0,
     pageCount = Math.ceil(all.length / 5),
     visible = all.slice(page * 5, page * 5 + 5);
-  return `<article class="song-card"><div class="song-header"><div class="song-avatar" aria-hidden="true">♪</div><div class="song-title-group"><div class="song-label">${group.tracks.length > 1 ? 'POSSIBLE SONG MATCH' : 'SAME SPOTIFY TRACK'} <span class="pill ${confidence === 'medium' ? 'warn' : ''}">${confidence} confidence</span></div><h2>${html(first.title)}</h2><p>${artists(first)} · ${group.tracks.length} scanned ${group.tracks.length === 1 ? 'version' : 'versions'} · ${playlistCount} ${playlistCount === 1 ? 'playlist' : 'playlists'}</p></div><div class="consistency"><strong>${group.tracks.length > 1 ? 'Multiple versions' : 'Consistent'}</strong><small>${playlistCount > 1 ? 'Across scanned playlists' : 'Within one scanned playlist'}</small></div></div>${group.comparisons.length ? evidence(group.comparisons) : '<div class="evidence-panel">Identical Spotify track ID in every placement shown. This does not establish consistency in unscanned playlists.</div>'}<div class="versions-header"><div><h3>Choose a version</h3><p>Different Spotify IDs can share the same release metadata and recording. No option is preselected. Scanned entries are shown first, in release name order.</p></div><button class="button compact" data-catalog="${html(group.id)}" ${catalog?.loading || catalog?.exhausted ? 'disabled' : ''}>${catalog?.loading ? 'Searching…' : catalog?.exhausted ? 'Catalog search complete' : 'Find more releases'}</button></div><div class="version-list">${visible.map((track) => versionOption(track, group)).join('')}</div><div class="version-pages"><span>${all.length} options · page ${page + 1} of ${pageCount}</span><div class="button-row"><button class="button compact" data-version-page="${html(group.id)}" data-delta="-1" ${page === 0 ? 'disabled' : ''}>Previous</button><button class="button compact" data-version-page="${html(group.id)}" data-delta="1" ${page + 1 >= pageCount ? 'disabled' : ''}>Next 5</button></div></div>${catalog?.note ? `<p class="catalog-note">${html(catalog.note)}</p>` : ''}${preview(group)}${relatedPanel(group)}<div class="song-footer"><button class="button compact" data-leave="${html(group.id)}">Leave everything as it is</button><span>Choices affect this review only.</span></div></article>`;
+  return `<article class="song-card"><div class="song-header"><div class="song-avatar" aria-hidden="true">♪</div><div class="song-title-group"><div class="song-label">${group.tracks.length > 1 ? 'POSSIBLE SONG MATCH' : 'SAME SPOTIFY TRACK'} <span class="pill ${confidence === 'medium' ? 'warn' : ''}">${confidence} confidence</span></div><h2>${html(first.title)}</h2><p>${artists(first)} · ${group.tracks.length} scanned ${group.tracks.length === 1 ? 'version' : 'versions'} · ${playlistCount} ${playlistCount === 1 ? 'playlist' : 'playlists'}</p></div><div class="consistency"><strong>${group.tracks.length > 1 ? 'Multiple versions' : 'Consistent'}</strong><small>${playlistCount > 1 ? 'Across scanned playlists' : 'Within one scanned playlist'}</small></div></div>${group.comparisons.length ? evidence(group.comparisons) : '<div class="evidence-panel">Identical Spotify track ID in every placement shown. This does not establish consistency in unscanned playlists.</div>'}<div class="versions-header"><div><h3>Choose a version</h3><p>Different Spotify IDs can share the same release metadata and recording. Only a preference you explicitly saved can select an option for you. Scanned entries are shown first, in release name order.</p></div><button class="button compact" data-catalog="${html(group.id)}" ${catalog?.loading || catalog?.exhausted ? 'disabled' : ''}>${catalog?.loading ? 'Searching…' : catalog?.exhausted ? 'Catalog search complete' : 'Find more releases'}</button></div><div class="version-list">${visible.map((track) => versionOption(track, group)).join('')}</div><div class="version-pages"><span>${all.length} options · page ${page + 1} of ${pageCount}</span><div class="button-row"><button class="button compact" data-version-page="${html(group.id)}" data-delta="-1" ${page === 0 ? 'disabled' : ''}>Previous</button><button class="button compact" data-version-page="${html(group.id)}" data-delta="1" ${page + 1 >= pageCount ? 'disabled' : ''}>Next 5</button></div></div>${catalog?.note ? `<p class="catalog-note">${html(catalog.note)}</p>` : ''}${preview(group)}${preferencePanel(group)}${relatedPanel(group)}<div class="song-footer"><button class="button compact" data-leave="${html(group.id)}">Leave everything as it is</button><span>Choices affect this review only.</span></div></article>`;
 }
 function relatedSuggestions(group) {
   return review.uncertainSongs.filter(
@@ -326,10 +377,12 @@ function applyScan(value) {
   scan = value;
   review = reviewScan(scan);
   choices.clear();
+  choiceSources.clear();
   catalogs.clear();
   pages.clear();
   dismissed.clear();
   groupPage = 0;
+  applySavedPreferences();
   renderReview();
   renderPlaylists();
   $('#duplicate-result').innerHTML = '';
@@ -352,6 +405,7 @@ async function loadPlaylists() {
       scan = null;
       review = null;
       choices.clear();
+      choiceSources.clear();
       catalogs.clear();
       renderReview();
     }
@@ -456,6 +510,7 @@ async function findCatalog(groupId) {
     if (requestEpoch !== epoch) return;
     catalogs.set(groupId, { ...prior, loading: false, note: error.message });
   }
+  applySavedPreferences();
   renderReview();
 }
 async function checkDuplicate(event) {
@@ -522,18 +577,8 @@ function exportReview() {
         groupId,
         chosenTrack: target ?? null,
         leaveUnchanged: versionId === 'leave',
-        differingPlacements:
-          versionId === 'leave'
-            ? []
-            : group.tracks
-                .filter((track) => track.id !== versionId)
-                .flatMap((track) =>
-                  track.locations.map((location) => ({
-                    ...location,
-                    fromTrackId: track.id,
-                    toTrackId: versionId,
-                  })),
-                ),
+        choiceSource: choiceSources.get(groupId) ?? 'manual',
+        differingPlacements: versionId === 'leave' ? [] : plannedPlacements(group, target),
       };
     }),
     uncertainPairs: review.uncertain.map((item) => ({
@@ -558,7 +603,37 @@ document.addEventListener('click', (event) => {
   if (button.dataset.catalog) void findCatalog(button.dataset.catalog);
   if (button.dataset.leave) {
     choices.set(button.dataset.leave, 'leave');
+    choiceSources.set(button.dataset.leave, 'manual');
+    notice('This song will remain unchanged in the review plan.');
     renderReview();
+  }
+  if (button.dataset.remember || button.dataset.forget || button.dataset.clearChoice) {
+    const groupId = button.dataset.remember ?? button.dataset.forget ?? button.dataset.clearChoice;
+    const group = review?.groups.find((item) => item.id === groupId);
+    if (!group) return;
+    try {
+      if (button.dataset.remember) {
+        const target = optionsFor(group).find((track) => track.id === choices.get(groupId));
+        preferences.save(preferenceScope(), group, target);
+        choiceSources.set(groupId, 'saved');
+        applySavedPreferences();
+        notice('Preference saved and applied to the current review. Spotify was not changed.');
+      } else if (button.dataset.forget) {
+        preferences.remove(preferenceScope(), group);
+        if (choiceSources.get(groupId) === 'saved') choices.delete(groupId);
+        choiceSources.set(groupId, 'manual');
+        notice('Saved song preference removed. Spotify was not changed.');
+      } else {
+        choices.delete(groupId);
+        choiceSources.set(groupId, 'manual');
+        notice(
+          'Current review choice cleared. Any saved preference remains available for future reviews.',
+        );
+      }
+      renderReview();
+    } catch (error) {
+      notice(`Preference could not be saved or cleared: ${error.message}`, true);
+    }
   }
   if (button.dataset.dismiss) {
     dismissed.add(button.dataset.dismiss);
@@ -583,7 +658,15 @@ document.addEventListener('change', (event) => {
     renderPlaylists();
   }
   if (event.target.dataset.choice) {
+    const group = review?.groups.find((item) => item.id === event.target.dataset.choice);
+    const target = group && optionsFor(group).find((track) => track.id === event.target.value);
+    if (!group || !validTarget(group, target)) {
+      notice('This choice could not be verified.', true);
+      return;
+    }
     choices.set(event.target.dataset.choice, event.target.value);
+    choiceSources.set(event.target.dataset.choice, 'manual');
+    notice('Version selected for this review. Spotify was not changed.');
     renderReview();
   }
 });
@@ -640,6 +723,7 @@ $('#disconnect').addEventListener('click', () => {
   playlists = [];
   selected.clear();
   choices.clear();
+  choiceSources.clear();
   catalogs.clear();
   $('#duplicate-result').innerHTML = '';
   updateConnection();
@@ -692,7 +776,13 @@ $('#song-filter').addEventListener('change', () => {
   renderReview();
 });
 $('#duplicate-form').addEventListener('submit', checkDuplicate);
-$('#export').addEventListener('click', exportReview);
+$('#export').addEventListener('click', () => {
+  try {
+    exportReview();
+  } catch (error) {
+    notice(`Review export stopped: ${error.message}`, true);
+  }
+});
 function themeLabel() {
   $('#theme-toggle').textContent =
     document.documentElement.dataset.theme === 'dark' ? '☀ Light mode' : '☾ Dark mode';

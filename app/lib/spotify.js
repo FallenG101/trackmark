@@ -66,6 +66,7 @@ export class SpotifyReader {
       method: 'GET',
       headers: { Authorization: `Bearer ${token}` },
       signal,
+      redirect: 'error',
     });
     if (!response.ok) {
       const retryAfter = Number(response.headers.get('Retry-After')) || null;
@@ -158,6 +159,8 @@ export class SpotifyReader {
       const page = await this.get(next, signal);
       if (!Array.isArray(page.items)) throw new Error('Playlist contents were inaccessible.');
       const start = Number.isInteger(page.offset) ? page.offset : offset;
+      if (start !== offset)
+        throw new Error('Playlist pages overlap or skip entries. Rescan before reviewing it.');
       for (const [index, entry] of page.items.entries()) {
         const position = start + index + 1,
           item = entry.item ?? entry.track;

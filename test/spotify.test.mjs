@@ -94,3 +94,108 @@ test('repeated pagination and premature page endings are errors', async () => {
   });
   await assert.rejects(() => reader.scanPlaylist(playlist), /before all entries/);
 });
+function cacheFixture() {
+  let snapshot = 's',
+    calls = 0;
+  const reader = new SpotifyReader(auth, {
+    fetcher: async (url, options) => {
+      calls++;
+      assert.equal(options.method, 'GET');
+      assert.equal(options.redirect, 'error');
+      return new URL(url).pathname.endsWith('/items')
+        ? response({ offset: 0, total: 1, items: [{ item: track }], next: null })
+        : response({ snapshot_id: snapshot, name: 'Playlist' });
+    },
+  });
+  return {
+    reader,
+    calls: () => calls,
+    change: () => {
+      snapshot = 'changed';
+    },
+  };
+}
+test('unchanged cached entries require two fresh snapshot checks and preserve original metadata time', async () => {
+  const { reader, calls } = cacheFixture();
+  const first = await reader.scanPlaylist(playlist);
+  const count = calls();
+  const reused = await reader.scanPlaylist(playlist, undefined, undefined, { forceRefresh: false });
+  assert.equal(calls() - count, 2);
+  assert.equal(reused.reused, true);
+  assert.equal(reused.scannedAt, first.scannedAt);
+  reused.placements.length = 0;
+  assert.equal(reader.playlistCache.get('p').placements.length, 1);
+});
+test('changed snapshots, forced reads and expired caches require full reads', async () => {
+  const { reader, calls, change } = cacheFixture();
+  await reader.scanPlaylist(playlist);
+  change();
+  let count = calls();
+  assert.equal(
+    (await reader.scanPlaylist(playlist, undefined, undefined, { forceRefresh: false })).reused,
+    false,
+  );
+  assert.equal(calls() - count, 3);
+  count = calls();
+  await reader.scanPlaylist(playlist);
+  assert.equal(calls() - count, 3);
+  reader.playlistCache.get('p').scannedAt = '2000-01-01T00:00:00Z';
+  count = calls();
+  await reader.scanPlaylist(playlist, undefined, undefined, { forceRefresh: false });
+  assert.equal(calls() - count, 3);
+});
+test('failed cache verification does not return stale entries and cooldown prevents further calls', async () => {
+  const { reader } = cacheFixture();
+  await reader.scanPlaylist(playlist);
+  let calls = 0;
+  reader.fetcher = async () => {
+    calls++;
+    return response({}, 429);
+  };
+  await assert.rejects(
+    () => reader.scanPlaylist(playlist, undefined, undefined, { forceRefresh: false }),
+    /rate limit/,
+  );
+  await assert.rejects(() => reader.get('me'), /cooldown/);
+  assert.equal(calls, 1);
+});
+test('aborted scans issue no request and ambiguous page offsets cannot become successful scans', async () => {
+  const { reader, calls } = cacheFixture();
+  const controller = new AbortController();
+  controller.abort();
+  await assert.rejects(() => reader.scanPlaylist(playlist, controller.signal), {
+    name: 'AbortError',
+  });
+  assert.equal(calls(), 0);
+  reader.fetcher = async (url) =>
+    new URL(url).pathname.endsWith('/items')
+      ? response({ offset: 5, total: 6, items: [{ item: track }], next: null })
+      : response({ snapshot_id: 's' });
+  await assert.rejects(() => reader.scanPlaylist(playlist), /overlap or skip/);
+});
+test('owned listing fails closed on missing account identity and excludes unknown or foreign owners', async () => {
+  const reader = new SpotifyReader(auth, {
+    fetcher: async (url) =>
+      response(
+        new URL(url).pathname === '/v1/me'
+          ? { id: 'owner' }
+          : {
+              items: [
+                { id: 'own', owner: { id: 'owner' } },
+                { id: 'other', owner: { id: 'other' } },
+                { id: 'unknown' },
+              ],
+              next: null,
+            },
+      ),
+  });
+  const result = await reader.ownedPlaylists();
+  assert.deepEqual(
+    result.playlists.map((item) => item.id),
+    ['own'],
+  );
+  assert.equal(result.excludedCount, 2);
+  reader.fetcher = async (url) =>
+    response(new URL(url).pathname === '/v1/me' ? {} : { items: [], next: null });
+  await assert.rejects(() => reader.ownedPlaylists(), /identity/);
+});

@@ -23,6 +23,8 @@ Choose **Try sample library** to explore all review interactions without Spotify
 
 Only playlists whose owner ID matches your signed-in Spotify account are listed for scanning and duplicate checks. Followed playlists and collaborative playlists owned by someone else are excluded. If account identity cannot be verified, playlist loading stops.
 
+Choose a verified track, then **Remember chosen version** to apply your preference immediately and save its exact Spotify ID for future reviews in this browser. Preferences are separated by Spotify account and Client ID. Manual choices, **Leave everything as it is**, and **Clear review choice** override a saved preference for this review. **Forget song preference** removes the saved preference and clears any choice applied from it. A missing or unavailable saved ID never selects a substitute; use Find more releases to verify additional candidates. Preferences and choices never modify playlists.
+
 The Client ID is public application metadata and is saved in this browser's local storage along with your theme preference. **Forget saved ID** removes it; disconnect before changing the ID. You can optionally supply it in `app/config.local.js` using `app/config.example.js`; that file is excluded from Git and static builds, and a browser-saved ID takes precedence. Access and refresh tokens stay in this browser tab's session storage. Disconnect clears the session and in-memory scan data. Scans and choices are not uploaded to a backend and disappear on reload.
 
 Spotify's current development-mode restrictions require the app owner to have Premium and restrict account access. Playlist contents may be accessible only when you own the playlist or collaborate on it. Inaccessible playlists are shown explicitly. See [Spotify's development-mode migration guide](https://developer.spotify.com/documentation/web-api/tutorials/february-2026-migration-guide) and [redirect requirements](https://developer.spotify.com/documentation/web-api/concepts/redirect_uri).
@@ -84,3 +86,5 @@ After deployment, open **Setup & privacy** and copy the displayed HTTPS redirect
 The app does not download Spotify audio, perform playback, use audio features, or train a machine-learning model. Spotify metadata links back to Spotify.
 
 Future playlist writes are specified in [the product plan](docs/product-plan.md), with separate permission, backup, freshness, exact-placement approval, and uncertain-write handling. This release contains no playlist mutation API.
+
+The [playlist safety review](docs/safety-review.md) records the current protections, offline checks, browser verification and requirements that must be implemented before enabling edits.

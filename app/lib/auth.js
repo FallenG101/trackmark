@@ -112,6 +112,7 @@ export class SpotifyAuth {
   async exchange(parameters) {
     const response = await this.fetcher('https://accounts.spotify.com/api/token', {
       method: 'POST',
+      redirect: 'error',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ ...parameters, client_id: this.config.clientId }),
     });
