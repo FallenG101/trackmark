@@ -1,5 +1,5 @@
-import { SpotifyAuth } from './lib/auth.js';
-import { SpotifyReader } from './lib/spotify.js';
+import { SpotifyAuth } from './lib/auth.js?v=20260929-2';
+import { SpotifyReader } from './lib/spotify.js?v=20260929-2';
 import { demoScan, demoCatalog, demoTrackId } from './lib/demo.js';
 import { reviewScan, differingPlacements, duplicateMatches, parseTrackId } from './core/review.mjs';
 import { compareTracks, versionLabels } from './core/matching.mjs';

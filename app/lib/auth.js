@@ -31,7 +31,7 @@ export function validateConfig(config, origin = location.origin) {
 export class SpotifyAuth {
   constructor(
     config,
-    { storage = sessionStorage, fetcher = globalThis.fetch.bind(globalThis) } = {},
+    { storage = sessionStorage, fetcher = (...args) => globalThis.fetch(...args) } = {},
   ) {
     this.config = config;
     this.storage = storage;
