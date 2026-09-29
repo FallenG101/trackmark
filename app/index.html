@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#141915" />
+    <meta
+      name="description"
+      content="Find likely song versions across selected Spotify playlists and review your choices."
+    />
+    <title>Trackmark · Playlist version review</title>
+    <script src="./theme.js"></script>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <aside class="sidebar">
+      <a class="brand" href="#review"
+        ><span class="brand-mark" aria-hidden="true">◉</span> Trackmark</a
+      >
+      <p class="nav-caption">YOUR PLAYLISTS</p>
+      <nav aria-label="Main navigation">
+        <button class="nav-item active" data-view="review" aria-current="page">
+          <span aria-hidden="true">▦</span> Song review
+        </button>
+        <button class="nav-item" data-view="playlists">
+          <span aria-hidden="true">♫</span> Playlists
+          <span id="playlist-count" class="nav-count">0</span>
+        </button>
+        <button class="nav-item" data-view="duplicates">
+          <span aria-hidden="true">⌕</span> Duplicate check
+        </button>
+        <button class="nav-item" data-view="settings">
+          <span aria-hidden="true">⚙</span> Setup & privacy
+        </button>
+      </nav>
+      <div class="sidebar-bottom">
+        <span class="account-dot" aria-hidden="true">✓</span>
+        <div>
+          <strong>Read-only access</strong
+          ><small id="connection-state">Spotify not connected</small>
+        </div>
+      </div>
+    </aside>
+    <main id="main" class="main-content">
+      <header class="topbar">
+        <span class="breadcrumb"
+          >Library <span>/</span> <span id="view-name">Song review</span></span
+        >
+        <div class="topbar-actions">
+          <span id="data-badge" class="badge">NO SCAN</span
+          ><button id="theme-toggle" class="button compact" aria-label="Switch theme">
+            ☾ Dark mode</button
+          ><button id="connect" class="button primary">Connect Spotify</button
+          ><button id="disconnect" class="button" hidden>Disconnect</button>
+        </div>
+      </header>
+      <div id="notice" class="notice" role="status" hidden></div>
+      <section id="review-view" class="view">
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">PLAYLIST LIBRARY</p>
+            <h1>Song review</h1>
+            <p class="subheading">See where different versions appear. You choose what stays.</p>
+          </div>
+          <div class="button-row">
+            <button id="demo" class="button">Try sample library</button
+            ><button class="button primary" data-view="playlists">Choose playlists ↗</button>
+          </div>
+        </div>
+        <div id="scan-summary"></div>
+        <div class="review-toolbar">
+          <div>
+            <strong id="result-count">0 songs</strong>
+            <span id="review-detail" class="muted"></span>
+          </div>
+          <div class="filters">
+            <label class="sr-only" for="song-search">Search songs</label
+            ><input id="song-search" type="search" placeholder="Search song or artist" /><label
+              class="sr-only"
+              for="song-filter"
+              >Filter groups</label
+            ><select id="song-filter">
+              <option value="all">All songs</option>
+              <option value="inconsistent">Multiple versions</option>
+              <option value="consistent">Consistent</option>
+              <option value="uncertain">Needs review</option></select
+            ><button id="export" class="button compact" disabled>Export review</button>
+          </div>
+        </div>
+        <div id="groups"></div>
+        <div id="group-pagination" class="pagination"></div>
+      </section>
+      <section id="playlists-view" class="view" hidden>
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">SCAN COVERAGE</p>
+            <h1>Your playlists</h1>
+            <p class="subheading">Select exactly which playlists to read.</p>
+          </div>
+          <button id="load-playlists" class="button">Refresh list</button>
+        </div>
+        <div class="scan-panel">
+          <div>
+            <strong id="selection-count">0 selected</strong>
+            <p class="muted">
+              Scanning never changes Spotify. Playlists must be accessible to this app.
+            </p>
+          </div>
+          <div class="button-row">
+            <button id="select-all" class="button">Select visible</button
+            ><button id="clear-selection" class="button">Clear</button
+            ><button id="scan" class="button primary" disabled>Scan selected</button
+            ><button id="cancel-scan" class="button" hidden>Cancel scan</button>
+          </div>
+        </div>
+        <div id="scan-progress" role="status" class="muted"></div>
+        <input
+          id="playlist-search"
+          type="search"
+          class="playlist-search"
+          aria-label="Search playlists"
+          placeholder="Find a playlist"
+        />
+        <div id="playlist-list" class="playlist-list"></div>
+      </section>
+      <section id="duplicates-view" class="view" hidden>
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">BEFORE YOU ADD</p>
+            <h1>Duplicate check</h1>
+            <p class="subheading">Check a Spotify track against one playlist.</p>
+          </div>
+        </div>
+        <form id="duplicate-form" class="panel duplicate-form">
+          <label for="track-link">Spotify track link or URI</label
+          ><input
+            id="track-link"
+            type="text"
+            required
+            placeholder="https://open.spotify.com/track/…"
+          /><label for="destination">Destination playlist</label
+          ><select id="destination" required>
+            <option value="">Select a playlist</option></select
+          ><label class="checkbox-label"
+            ><input id="refresh-destination" type="checkbox" checked /> Read this playlist again
+            before checking</label
+          >
+          <p class="muted">
+            This check runs here. It cannot warn you while you add tracks inside Spotify.
+          </p>
+          <button id="check-duplicate" class="button primary" type="submit">
+            Check for duplicates
+          </button>
+        </form>
+        <div id="duplicate-result" aria-live="polite"></div>
+      </section>
+      <section id="settings-view" class="view" hidden>
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">LOCAL SETUP</p>
+            <h1>Setup & privacy</h1>
+            <p class="subheading">Connect your own Spotify developer app.</p>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Spotify connection</h2>
+          <p id="config-status"></p>
+          <ol>
+            <li>
+              In Spotify Developer Dashboard, register this redirect URI:
+              <code id="redirect-uri">http://127.0.0.1:4173/</code>
+            </li>
+            <li>
+              Put your Client ID in <code>app/config.local.js</code>. Copy
+              <code>app/config.example.js</code> if needed.
+            </li>
+            <li>
+              Run <code>npm start</code>, open the loopback URL, and choose
+              <strong>Connect Spotify</strong>.
+            </li>
+          </ol>
+          <p>Use a Client ID only. PKCE sign-in does not use a client secret.</p>
+          <p>
+            Spotify development apps may restrict which accounts and playlists are accessible. The
+            app reports failed reads and incomplete scans.
+          </p>
+          <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noreferrer"
+            >Open Spotify Developer Dashboard ↗</a
+          >
+        </div>
+        <div class="panel">
+          <h2>Your data</h2>
+          <p>
+            Access and refresh tokens live in this browser tab’s session storage. Scans and choices
+            live in memory and disappear on reload. Export only when you want a local copy.
+            Disconnect clears the session and scan.
+          </p>
+          <p>
+            Requested permissions: read private playlists and include collaborative playlists. There
+            are no Spotify playlist write requests in this app.
+          </p>
+          <p>
+            Matches use metadata rules. No Spotify content is used to train a machine-learning
+            model.
+          </p>
+        </div>
+      </section>
+      <footer class="page-footer">
+        Trackmark · Matches are proposals, not guarantees.
+        <a
+          href="https://open.spotify.com"
+          target="_blank"
+          rel="noreferrer"
+          class="spotify-attribution"
+          ><img src="./assets/spotify-logo.svg" alt="Spotify" width="112"
+        /></a>
+      </footer>
+    </main>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

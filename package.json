@@ -1,0 +1,16 @@
+{
+  "name": "trackmark",
+  "private": true,
+  "version": "1.0.0",
+  "description": "A read-only Spotify playlist version review app",
+  "type": "module",
+  "scripts": {
+    "start": "node scripts/dev.mjs",
+    "dev": "node scripts/dev.mjs",
+    "test": "node --test",
+    "build": "node scripts/build.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
