@@ -17,7 +17,7 @@ Choose **Try sample library** to explore all review interactions without Spotify
 ## Connect your Spotify account
 
 1. Create or use an app in [Spotify Developer Dashboard](https://developer.spotify.com/dashboard).
-2. Register this exact redirect URI: **http://127.0.0.1:4173/** (including the final slash). Spotify does not allow `localhost` as a redirect hostname.
+2. Register the exact redirect URI displayed in **Setup & privacy** (including the final slash). Locally this is **http://127.0.0.1:4173/**. On a hosted site it is the site's HTTPS address. Spotify does not allow `localhost` as a redirect hostname.
 3. Open **Setup & privacy**, paste your Client ID, and choose **Save Client ID**. Do not add a client secret. The browser uses Authorization Code with PKCE.
 4. Choose **Connect Spotify**, select playlists, and choose **Scan selected**.
 
@@ -50,7 +50,16 @@ npm run build
 
 `npm test` runs independent tests with Node's built-in test runner: matching examples, review placement preservation, duplicate checks, PKCE/state validation, permissions, token refresh, API pagination, scan conflicts, and errors. No test calls Spotify.
 
-`npm run build` creates `dist/` as a portable static website, excluding local configuration. For a privately hosted build, configure an exact HTTPS redirect registered in Spotify using `dist/config.local.js`. The configuration shape matches `app/config.example.js`; users can enter their Client ID in the setup page.
+`npm run build` creates `dist/` as a portable static website, excluding local configuration. Hosted sites automatically use their own HTTPS address as the Spotify redirect; users enter their Client ID in the setup page.
+
+## Website hosting
+
+The app runs entirely in the browser and needs only static HTTPS hosting. It does not need a backend server. Spotify access remains read-only, and scans stay in browser memory.
+
+- **GitHub Pages:** publish from `main`, repository root. The root page opens `app/`, and the Spotify redirect will be `https://falleng101.github.io/trackmark/app/`. GitHub Free requires a public repository for Pages; changing repository visibility requires the owner's approval.
+- **Netlify:** import this repository. `netlify.toml` sets the build command and publishes `dist/`. Alternatively, build locally and upload the contents of `dist/` using Netlify's manual deploy flow.
+
+After deployment, open **Setup & privacy** and copy the displayed HTTPS redirect into your Spotify Developer Dashboard's allowed redirect URIs. Enter your Client ID again on the hosted site: browser storage is separate for each site address. The local development server is no longer needed to use a deployed site.
 
 ## Code map
 

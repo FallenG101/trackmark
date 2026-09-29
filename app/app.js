@@ -28,9 +28,24 @@ const duration = (ms) =>
   Number.isFinite(ms)
     ? `${Math.floor(Math.round(ms / 1000) / 60)}:${String(Math.round(ms / 1000) % 60).padStart(2, '0')}`
     : 'Unknown duration';
-let config = { clientId: '', redirectUri: 'http://127.0.0.1:4173/' };
+const siteRedirect = new URL('./', location.href);
+siteRedirect.search = '';
+siteRedirect.hash = '';
+let config = {
+  clientId: '',
+  redirectUri: location.protocol === 'file:' ? 'http://127.0.0.1:4173/' : siteRedirect.href,
+};
 try {
-  config = { ...config, ...(await import('./config.local.js')).default };
+  const localConfig = (await import('./config.local.js')).default;
+  config = {
+    ...config,
+    ...localConfig,
+    // A local loopback redirect must not override the hosted site's address.
+    redirectUri:
+      location.protocol === 'https:'
+        ? siteRedirect.href
+        : localConfig.redirectUri || config.redirectUri,
+  };
 } catch {
   /* Local configuration is optional for the demo. */
 }
