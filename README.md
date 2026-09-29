@@ -77,6 +77,6 @@ After deployment, open **Setup & privacy** and copy the displayed HTTPS redirect
 | `scripts/build.mjs`     | Static build with local config excluded                        |
 | `test/`                 | Offline behavior and safety tests                              |
 
-The app does not download Spotify audio, perform playback, use audio features, or train a machine-learning model. Spotify metadata links back to Spotify; the logo in `app/assets/spotify-logo.svg` is Spotify's official supplied asset and remains their trademark.
+The app does not download Spotify audio, perform playback, use audio features, or train a machine-learning model. Spotify metadata links back to Spotify.
 
 Future playlist writes are specified in [the product plan](docs/product-plan.md), with separate permission, backup, freshness, exact-placement approval, and uncertain-write handling. This release contains no playlist mutation API.

@@ -768,13 +768,6 @@ select {
   font-size: 11px;
   margin-top: 30px;
 }
-.spotify-attribution {
-  display: inline-flex;
-  gap: 5px;
-  align-items: center;
-  margin-left: 5px;
-  font-weight: 700;
-}
 .catalog-note {
   font-size: 11px;
   color: var(--muted);
