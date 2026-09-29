@@ -1,5 +1,5 @@
 import { SpotifyAuth } from './lib/auth.js?v=20260929-4';
-import { SpotifyReader } from './lib/spotify.js?v=20260929-4';
+import { SpotifyReader } from './lib/spotify.js?v=20260929-7';
 import { demoScan, demoCatalog, demoTrackId } from './lib/demo.js';
 import {
   reviewScan,
@@ -252,7 +252,7 @@ function renderReview() {
   }
   const scanned = scan.playlists.filter((playlist) => playlist.status === 'scanned'),
     omissions = scanned.reduce((count, playlist) => count + playlist.omissions.length, 0);
-  summary.innerHTML = `<div class="scan-summary"><div class="scan-summary-heading"><strong>${scan.demo ? 'Sample library · no Spotify scan' : `${scanned.length} playlists scanned`}</strong><span class="pill">Read only</span></div><p>${scan.demo ? 'Synthetic metadata for exploring the app.' : `Scan finished ${date(scan.completedAt)}. These are snapshots, not live Spotify state.`}</p><p>${omissions} unsupported or unavailable entries could not be matched · ${review.liveExcluded} live recordings and ${review.distinctVersionsExcluded} other distinct versions excluded from grouping and replacement suggestions (acoustic, remixes, demos, edits, covers, alternate takes and re-recordings).</p><div class="coverage-items">${scan.playlists.map((playlist) => `<span class="coverage-item" title="${html(playlist.error ?? playlist.omissions.map((item) => `#${item.position}: ${item.reason}`).join('; '))}"><span class="coverage-mark ${playlist.status === 'scanned' ? '' : 'warn'}">${playlist.status === 'scanned' ? '✓' : '!'}</span>${link(playlist.spotifyUrl, playlist.name)} <small>${html(playlist.status)}${playlist.scannedAt ? ` · ${date(playlist.scannedAt)}` : ''}${playlist.omissions.length ? ` · ${playlist.omissions.length} unchecked entries` : ''}</small></span>`).join('')}</div><p>Consistency applies only to the entries read in these scanned playlists. ${playlists.filter((playlist) => !scan.playlists.some((item) => item.id === playlist.id)).length} listed playlists were not selected.</p>${scanLimitations()}</div>`;
+  summary.innerHTML = `<div class="scan-summary"><div class="scan-summary-heading"><strong>${scan.demo ? 'Sample library · no Spotify scan' : `${scanned.length} playlists scanned`}</strong><span class="pill">Read only</span></div><p>${scan.demo ? 'Synthetic metadata for exploring the app.' : `Scan finished ${date(scan.completedAt)}. These are snapshots, not live Spotify state.`}</p><p>${omissions} unsupported or unavailable entries could not be matched · ${review.liveExcluded} live recordings and ${review.distinctVersionsExcluded} other distinct versions excluded from grouping and replacement suggestions (acoustic, remixes, demos, edits, covers, alternate takes and re-recordings).</p><div class="coverage-items">${scan.playlists.map((playlist) => `<span class="coverage-item" title="${html(playlist.error ?? playlist.omissions.map((item) => `#${item.position}: ${item.reason}`).join('; '))}"><span class="coverage-mark ${playlist.status === 'scanned' ? '' : 'warn'}">${playlist.status === 'scanned' ? '✓' : '!'}</span>${link(playlist.spotifyUrl, playlist.name)} <small>${html(playlist.status)}${playlist.scannedAt ? ` · entries read ${date(playlist.scannedAt)}` : ''}${playlist.reused ? ` · reused; snapshot checked ${date(playlist.snapshotCheckedAt)}` : ''}${playlist.omissions.length ? ` · ${playlist.omissions.length} unchecked entries` : ''}</small></span>`).join('')}</div><p>Consistency applies only to the entries read in these scanned playlists. ${playlists.filter((playlist) => !scan.playlists.some((item) => item.id === playlist.id)).length} listed playlists were not selected.</p>${scanLimitations()}</div>`;
   const filter = $('#song-filter').value,
     query = $('#song-search').value.trim().toLowerCase();
   const items = [
@@ -309,7 +309,7 @@ function renderPlaylists() {
     visible
       .map((playlist) => {
         const status = scan?.playlists.find((item) => item.id === playlist.id);
-        return `<div class="playlist-row"><input id="playlist-${html(playlist.id)}" type="checkbox" data-playlist="${html(playlist.id)}" ${selected.has(playlist.id) ? 'checked' : ''} ${loading ? 'disabled' : ''}><label for="playlist-${html(playlist.id)}"><strong>${html(playlist.name)}</strong><small>${playlist.items?.total ?? playlist.tracks?.total ?? 'Unknown'} entries · ${html(playlist.owner?.display_name ?? playlist.owner?.id ?? 'Unknown owner')}</small></label><span class="playlist-state" title="${html(status?.error ?? '')}">${status ? `${html(status.status)}${status.scannedAt ? ` · ${date(status.scannedAt)}` : ''}` : 'Not scanned'}</span>${link(playlist.external_urls?.spotify, 'Spotify')}</div>`;
+        return `<div class="playlist-row"><input id="playlist-${html(playlist.id)}" type="checkbox" data-playlist="${html(playlist.id)}" ${selected.has(playlist.id) ? 'checked' : ''} ${loading ? 'disabled' : ''}><label for="playlist-${html(playlist.id)}"><strong>${html(playlist.name)}</strong><small>${playlist.items?.total ?? playlist.tracks?.total ?? 'Unknown'} entries · ${html(playlist.owner?.display_name ?? playlist.owner?.id ?? 'Unknown owner')}</small></label><span class="playlist-state" title="${html(status?.error ?? '')}">${status ? `${html(status.status)}${status.scannedAt ? ` · entries read ${date(status.scannedAt)}` : ''}${status.reused ? ` · snapshot checked ${date(status.snapshotCheckedAt)}` : ''}` : 'Not scanned'}</span>${link(playlist.external_urls?.spotify, 'Spotify')}</div>`;
       })
       .join('') ||
     '<div class="empty-state">Connect Spotify and load your playlists, or try the sample library.</div>';
@@ -335,6 +335,7 @@ function applyScan(value) {
   $('#duplicate-result').innerHTML = '';
 }
 async function loadPlaylists() {
+  if (loading) return;
   const requestEpoch = epoch;
   if (!auth.connected()) {
     navigate('settings');
@@ -373,6 +374,7 @@ async function loadPlaylists() {
   }
 }
 async function scanSelected() {
+  if (loading) return;
   const chosen = playlists.filter((playlist) => selected.has(playlist.id));
   if (!chosen.length) return;
   controller = new AbortController();
@@ -391,6 +393,7 @@ async function scanSelected() {
     } else
       value = await spotify.scan(chosen, {
         signal: controller.signal,
+        forceRefresh: $('#force-refresh').checked,
         progress: (name, count, total) => {
           $('#scan-progress').textContent = `Reading ${name}: ${count} of ${total ?? '?'} entries`;
         },
@@ -399,7 +402,7 @@ async function scanSelected() {
     applyScan(value);
     navigate('review');
     notice(
-      `Scan finished. ${value.playlists.filter((playlist) => playlist.status === 'scanned').length} playlists were read successfully.`,
+      `Scan finished. ${value.playlists.filter((playlist) => playlist.status === 'scanned' && !playlist.reused).length} playlists read fully; ${value.playlists.filter((playlist) => playlist.reused).length} unchanged playlists reused after fresh snapshot checks.`,
     );
   } catch (error) {
     notice(error.message, true);
@@ -447,7 +450,7 @@ async function findCatalog(groupId) {
       offset: response.offset,
       exhausted: !response.next,
       loading: false,
-      note: `${additions.length} additional compatible versions found. ${skipped} uncertain or different recordings kept out. ${response.next ? 'Search has more pages; choose Find more releases again.' : 'No further search pages returned. Spotify search may omit releases.'}`,
+      note: `${response.searchedAt ? `Catalog metadata read ${date(response.searchedAt)}${response.reused ? ' (cached)' : ''}. ` : ''}${additions.length} additional compatible versions found. ${skipped} uncertain or different recordings kept out. ${response.next ? 'Search has more pages; choose Find more releases again.' : 'No further search pages returned. Spotify search may omit releases.'}`,
     });
   } catch (error) {
     if (requestEpoch !== epoch) return;
@@ -595,6 +598,7 @@ $('#client-id-form').addEventListener('submit', (event) => {
   try {
     localStorage.setItem(CLIENT_ID_KEY, clientId);
     auth.disconnect();
+    spotify.clearCaches();
     config.clientId = clientId;
     updateConnection();
     notice('Client ID saved in this browser. You can now connect Spotify.');
@@ -607,6 +611,7 @@ $('#forget-client-id').addEventListener('click', () => {
   try {
     localStorage.removeItem(CLIENT_ID_KEY);
     auth.disconnect();
+    spotify.clearCaches();
     config.clientId = fileClientId;
     $('#client-id').value = config.clientId;
     updateConnection();
@@ -629,6 +634,7 @@ $('#disconnect').addEventListener('click', () => {
   epoch++;
   controller?.abort();
   auth.disconnect();
+  spotify.clearCaches();
   scan = null;
   review = null;
   playlists = [];

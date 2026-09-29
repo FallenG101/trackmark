@@ -58,6 +58,10 @@ npm run build
 
 The app runs entirely in the browser and needs only static HTTPS hosting. It does not need a backend server. Spotify access remains read-only, and scans stay in browser memory.
 
+Repeated scans can reuse complete playlist entries read within the last ten minutes, but only after two fresh Spotify snapshot checks agree with the cached snapshot. Playlists with omitted entries, expired caches, changed snapshots, or a failed check are not reused. **Read every entry again** bypasses the cache, and fresh duplicate destination checks always read entries again. Snapshot verification checks playlist placements; it cannot prove that Spotify's track metadata has not changed independently. The review shows the original entry-read time and the new snapshot-check time separately.
+
+Catalog search pages are cached for ten minutes in memory with their original read time shown. API reads run in a queue with at least 350 ms between request starts. Rate-limit responses activate the server's Retry-After cooldown (30 seconds if missing) and are never retried automatically. Caches clear on disconnect, Client ID changes, account changes or page reload; no playlist cache is persisted. Pacing reduces bursts but cannot guarantee avoidance of Spotify's account-wide app limits or limits affected by other tabs.
+
 - **GitHub Pages:** publish from `main`, repository root. The root page opens `app/`, and the Spotify redirect will be `https://falleng101.github.io/trackmark/app/`. GitHub Free requires a public repository for Pages; changing repository visibility requires the owner's approval.
 - **Netlify:** import this repository. `netlify.toml` sets the build command and publishes `dist/`. Alternatively, build locally and upload the contents of `dist/` using Netlify's manual deploy flow.
 
