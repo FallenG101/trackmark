@@ -17,7 +17,7 @@ export async function codeChallenge(verifier) {
 }
 export function validateConfig(config, origin = location.origin) {
   if (!config?.clientId || !/^[a-zA-Z0-9]{32}$/.test(config.clientId))
-    throw new Error('Add your Client ID to app/config.local.js, then reload.');
+    throw new Error('Save your Spotify Client ID in Setup & privacy first.');
   const redirect = new URL(config.redirectUri);
   if (redirect.origin !== origin)
     throw new Error(`Open the app at ${redirect.origin} to use the configured Spotify redirect.`);

@@ -34,6 +34,15 @@ try {
 } catch {
   /* Local configuration is optional for the demo. */
 }
+const CLIENT_ID_KEY = 'trackmark.spotify.clientId';
+const fileClientId = config.clientId;
+try {
+  const savedId = localStorage.getItem(CLIENT_ID_KEY);
+  if (savedId && /^[a-zA-Z0-9]{32}$/.test(savedId)) config.clientId = savedId;
+} catch {
+  /* File configuration remains available when browser storage is blocked. */
+}
+$('#client-id').value = config.clientId;
 const auth = new SpotifyAuth(config),
   spotify = new SpotifyReader(auth);
 let epoch = 0;
@@ -82,6 +91,9 @@ function updateConnection() {
     : 'Client ID has not been configured. The sample library works without one.';
   $('#redirect-uri').textContent = config.redirectUri;
   $('#load-playlists').disabled = !connected || loading;
+  $('#client-id').disabled = connected || loading;
+  $('#client-id-form button[type="submit"]').disabled = connected || loading;
+  $('#forget-client-id').disabled = connected || loading;
 }
 function artists(track) {
   return track.artists
@@ -542,6 +554,41 @@ document.addEventListener('change', (event) => {
   if (event.target.dataset.choice) {
     choices.set(event.target.dataset.choice, event.target.value);
     renderReview();
+  }
+});
+$('#client-id-form').addEventListener('submit', (event) => {
+  event.preventDefault();
+  if (auth.connected() || loading) return;
+  const clientId = $('#client-id').value.trim();
+  if (!/^[a-zA-Z0-9]{32}$/.test(clientId)) {
+    notice('Enter a valid 32-character Spotify Client ID.', true);
+    return;
+  }
+  try {
+    localStorage.setItem(CLIENT_ID_KEY, clientId);
+    auth.disconnect();
+    config.clientId = clientId;
+    updateConnection();
+    notice('Client ID saved in this browser. You can now connect Spotify.');
+  } catch {
+    notice('Browser storage is unavailable. Allow local storage to save your Client ID.', true);
+  }
+});
+$('#forget-client-id').addEventListener('click', () => {
+  if (auth.connected() || loading) return;
+  try {
+    localStorage.removeItem(CLIENT_ID_KEY);
+    auth.disconnect();
+    config.clientId = fileClientId;
+    $('#client-id').value = config.clientId;
+    updateConnection();
+    notice(
+      fileClientId
+        ? 'Saved ID removed. Using the Client ID from your local configuration file.'
+        : 'Saved Client ID removed from this browser.',
+    );
+  } catch {
+    notice('Browser storage is unavailable. Could not remove the saved Client ID.', true);
   }
 });
 $('#connect').addEventListener('click', () =>

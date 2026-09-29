@@ -166,15 +166,34 @@
         <div class="panel">
           <h2>Spotify connection</h2>
           <p id="config-status"></p>
+          <form id="client-id-form">
+            <label for="client-id">Spotify Client ID</label>
+            <input
+              id="client-id"
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              maxlength="32"
+              pattern="[a-zA-Z0-9]{32}"
+              required
+              aria-describedby="client-id-help"
+              placeholder="Paste your 32-character Client ID"
+            />
+            <p id="client-id-help" class="subheading">
+              Saved only in this browser. Use your Client ID, never your client secret. Disconnect
+              Spotify before changing it.
+            </p>
+            <div class="button-row">
+              <button type="submit" class="button primary">Save Client ID</button>
+              <button id="forget-client-id" type="button" class="button">Forget saved ID</button>
+            </div>
+          </form>
           <ol>
             <li>
               In Spotify Developer Dashboard, register this redirect URI:
               <code id="redirect-uri">http://127.0.0.1:4173/</code>
             </li>
-            <li>
-              Put your Client ID in <code>app/config.local.js</code>. Copy
-              <code>app/config.example.js</code> if needed.
-            </li>
+            <li>Paste your Client ID above and choose <strong>Save Client ID</strong>.</li>
             <li>
               Run <code>npm start</code>, open the loopback URL, and choose
               <strong>Connect Spotify</strong>.
@@ -194,7 +213,8 @@
           <p>
             Access and refresh tokens live in this browser tab’s session storage. Scans and choices
             live in memory and disappear on reload. Export only when you want a local copy.
-            Disconnect clears the session and scan.
+            Disconnect clears the session and scan. Your saved Client ID stays in this browser until
+            you choose Forget saved ID.
           </p>
           <p>
             Requested permissions: read private playlists and include collaborative playlists. There

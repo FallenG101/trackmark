@@ -723,6 +723,18 @@ select {
   font-size: 12px;
   margin: 20px;
 }
+#client-id-form {
+  max-width: 520px;
+  margin: 20px 0;
+}
+#client-id-form > label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+#client-id {
+  width: 100%;
+}
 .duplicate-form {
   max-width: 700px;
   display: grid;

@@ -18,11 +18,10 @@ Choose **Try sample library** to explore all review interactions without Spotify
 
 1. Create or use an app in [Spotify Developer Dashboard](https://developer.spotify.com/dashboard).
 2. Register this exact redirect URI: **http://127.0.0.1:4173/** (including the final slash). Spotify does not allow `localhost` as a redirect hostname.
-3. Copy `app/config.example.js` to `app/config.local.js` if that local file does not exist.
-4. Add your Client ID to `clientId` in `app/config.local.js`. Do not add a client secret. The browser uses Authorization Code with PKCE.
-5. Reload the app, choose **Connect Spotify**, select playlists, and choose **Scan selected**.
+3. Open **Setup & privacy**, paste your Client ID, and choose **Save Client ID**. Do not add a client secret. The browser uses Authorization Code with PKCE.
+4. Choose **Connect Spotify**, select playlists, and choose **Scan selected**.
 
-The Client ID is public application metadata, but your local configuration is excluded from Git and static builds. Access and refresh tokens stay in this browser tab's session storage. Disconnect clears the session and in-memory scan data. Scans and choices are not uploaded to a backend and disappear on reload. Theme preference is the only value retained in local storage.
+The Client ID is public application metadata and is saved in this browser's local storage along with your theme preference. **Forget saved ID** removes it; disconnect before changing the ID. You can optionally supply it in `app/config.local.js` using `app/config.example.js`; that file is excluded from Git and static builds, and a browser-saved ID takes precedence. Access and refresh tokens stay in this browser tab's session storage. Disconnect clears the session and in-memory scan data. Scans and choices are not uploaded to a backend and disappear on reload.
 
 Spotify's current development-mode restrictions require the app owner to have Premium and restrict account access. Playlist contents may be accessible only when you own the playlist or collaborate on it. Inaccessible playlists are shown explicitly. See [Spotify's development-mode migration guide](https://developer.spotify.com/documentation/web-api/tutorials/february-2026-migration-guide) and [redirect requirements](https://developer.spotify.com/documentation/web-api/concepts/redirect_uri).
 
@@ -51,7 +50,7 @@ npm run build
 
 `npm test` runs independent tests with Node's built-in test runner: matching examples, review placement preservation, duplicate checks, PKCE/state validation, permissions, token refresh, API pagination, scan conflicts, and errors. No test calls Spotify.
 
-`npm run build` creates `dist/` as a portable static website, excluding local configuration. To connect Spotify from a privately hosted build, provide `dist/config.local.js` with your public Client ID and an exact HTTPS redirect registered in Spotify. The configuration shape matches `app/config.example.js`.
+`npm run build` creates `dist/` as a portable static website, excluding local configuration. For a privately hosted build, configure an exact HTTPS redirect registered in Spotify using `dist/config.local.js`. The configuration shape matches `app/config.example.js`; users can enter their Client ID in the setup page.
 
 ## Code map
 
