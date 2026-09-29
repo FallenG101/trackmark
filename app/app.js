@@ -1,5 +1,5 @@
-import { SpotifyAuth } from './lib/auth.js?v=20260929-2';
-import { SpotifyReader } from './lib/spotify.js?v=20260929-2';
+import { SpotifyAuth } from './lib/auth.js?v=20260929-3';
+import { SpotifyReader } from './lib/spotify.js?v=20260929-3';
 import { demoScan, demoCatalog, demoTrackId } from './lib/demo.js';
 import { reviewScan, differingPlacements, duplicateMatches, parseTrackId } from './core/review.mjs';
 import { compareTracks, versionLabels } from './core/matching.mjs';
@@ -334,7 +334,7 @@ async function loadPlaylists() {
   updateConnection();
   notice('Loading playlists…');
   try {
-    const fetched = await spotify.playlists();
+    const { playlists: fetched, excludedCount } = await spotify.ownedPlaylists();
     if (requestEpoch !== epoch) return;
     if (scan?.demo) {
       scan = null;
@@ -350,7 +350,9 @@ async function loadPlaylists() {
       [...selected].filter((id) => playlists.some((playlist) => playlist.id === id)),
     );
     renderPlaylists();
-    notice(`${playlists.length} playlists listed. Select the ones to scan.`);
+    notice(
+      `${playlists.length} owned playlists listed. ${excludedCount} other playlists excluded. Select the ones to scan.`,
+    );
   } catch (error) {
     notice(error.message, true);
   } finally {

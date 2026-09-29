@@ -21,6 +21,8 @@ Choose **Try sample library** to explore all review interactions without Spotify
 3. Open **Setup & privacy**, paste your Client ID, and choose **Save Client ID**. Do not add a client secret. The browser uses Authorization Code with PKCE.
 4. Choose **Connect Spotify**, select playlists, and choose **Scan selected**.
 
+Only playlists whose owner ID matches your signed-in Spotify account are listed for scanning and duplicate checks. Followed playlists and collaborative playlists owned by someone else are excluded. If account identity cannot be verified, playlist loading stops.
+
 The Client ID is public application metadata and is saved in this browser's local storage along with your theme preference. **Forget saved ID** removes it; disconnect before changing the ID. You can optionally supply it in `app/config.local.js` using `app/config.example.js`; that file is excluded from Git and static builds, and a browser-saved ID takes precedence. Access and refresh tokens stay in this browser tab's session storage. Disconnect clears the session and in-memory scan data. Scans and choices are not uploaded to a backend and disappear on reload.
 
 Spotify's current development-mode restrictions require the app owner to have Premium and restrict account access. Playlist contents may be accessible only when you own the playlist or collaborate on it. Inaccessible playlists are shown explicitly. See [Spotify's development-mode migration guide](https://developer.spotify.com/documentation/web-api/tutorials/february-2026-migration-guide) and [redirect requirements](https://developer.spotify.com/documentation/web-api/concepts/redirect_uri).

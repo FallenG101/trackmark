@@ -55,6 +55,15 @@ export class SpotifyReader {
   playlists(signal) {
     return this.pages('me/playlists?limit=50', signal);
   }
+  async ownedPlaylists(signal) {
+    const [profile, listed] = await Promise.all([this.get('me', signal), this.playlists(signal)]);
+    if (typeof profile.id !== 'string' || !profile.id)
+      throw new Error(
+        'Spotify account identity could not be verified. No playlists can be selected.',
+      );
+    const playlists = listed.filter((playlist) => playlist?.owner?.id === profile.id);
+    return { playlists, excludedCount: listed.length - playlists.length };
+  }
   async scanPlaylist(playlist, signal, progress = () => {}) {
     const base = {
       id: playlist.id,
