@@ -620,6 +620,7 @@ select {
 .version-meta {
   font-size: 11px;
   color: var(--muted);
+  overflow-wrap: anywhere;
 }
 .meta-tag {
   display: inline-block;
