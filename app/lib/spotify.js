@@ -9,7 +9,7 @@ export class SpotifyError extends Error {
 }
 /** Only GET is exposed. OAuth token POSTs live separately in auth.js. */
 export class SpotifyReader {
-  constructor(auth, { fetcher = fetch } = {}) {
+  constructor(auth, { fetcher = globalThis.fetch.bind(globalThis) } = {}) {
     this.auth = auth;
     this.fetcher = fetcher;
   }
